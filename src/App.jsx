@@ -102,7 +102,129 @@ export default function ADHDApp() {
       </div>
     </div>
   );
+import React, { useState, useEffect } from "react";
 
+// --- Persistence Hook ---
+function useLocalStorage(key, initialValue) {
+  const [value, setValue] = useState(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (e) { return initialValue; }
+  });
+  useEffect(() => {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+  return [value, setValue];
+}
+
+const styles = `
+:root {
+  --bg: #0a0a0f; --card: #12121e; --accent: #7c3aed; --text: #f0eeff;
+  --muted: #7b6fa0; --gradient: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; }
+.container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.nav-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 30px; }
+.nav-card { background: var(--card); padding: 15px; border-radius: 12px; text-align: center; cursor: pointer; border: 1px solid #222; transition: 0.2s; }
+.nav-card.active { background: var(--gradient); border-color: transparent; }
+.main-card { background: var(--card); border-radius: 20px; padding: 40px; border: 1px solid #222; min-height: 400px; }
+.btn { background: var(--gradient); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 15px; }
+.stat-box { background: #080810; padding: 15px; border-radius: 10px; border: 1px solid #2a2a45; }
+input, textarea { width: 100%; background: #080810; border: 1px solid #2a2a45; border-radius: 8px; padding: 12px; color: white; margin-top: 10px; font-family: inherit; }
+`;
+
+export default function ADHDApp() {
+  // 1. GLOBAL STATE
+  const [activeTab, setActiveTab] = useLocalStorage("activeTab", "dash");
+  const [wins, setWins] = useLocalStorage("wins_count", 0);
+  const [tasks, setTasks] = useLocalStorage("global_tasks", []);
+  
+  // 2. TIMER STATE
+  const [timeLeft, setTimeLeft] = useState(300); 
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    let interval = null;
+    if (isActive && timeLeft > 0) {
+      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    } else if (timeLeft === 0) {
+      clearInterval(interval);
+      setIsActive(false);
+      setWins(prev => prev + 1);
+      alert("Burst Complete! +1 Win earned.");
+      setTimeLeft(300);
+    }
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft, setWins]);
+
+  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+
+  return (
+    <div className="container">
+      <style>{styles}</style>
+      
+      <header className="header">
+        <h1>ADHD_OS</h1>
+        <div style={{ display: 'flex', gap: '15px' }}>
+          <div className="stat-box">Wins: <span style={{ color: '#f9a8d4' }}>{wins}</span></div>
+        </div>
+      </header>
+
+      <nav className="nav-grid">
+        {['dash', 'dump', 'focus', 'timer'].map(tab => (
+          <div key={tab} className={`nav-card ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+            {tab.toUpperCase()}
+          </div>
+        ))}
+      </nav>
+
+      <main className="main-card">
+        {activeTab === 'dash' && (
+          <div>
+            <h2>Command Center</h2>
+            <div className="stat-box" style={{ marginTop: '20px' }}>
+              <strong>Current Mission:</strong>
+              <p>{tasks.length > 0 ? tasks[0] : "No active task. Go to FOCUS tab."}</p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'dump' && (
+          <div>
+            <h2>Brain Purge</h2>
+            <textarea rows="10" placeholder="Type everything in your head..." />
+            <button className="btn" onClick={() => alert("Brain cleared!")}>Archive Dump</button>
+          </div>
+        )}
+
+        {activeTab === 'focus' && (
+          <div>
+            <h2>The One Thing</h2>
+            <input 
+              placeholder="What is the priority?" 
+              onKeyDown={(e) => { if(e.key === 'Enter') { setTasks([e.target.value]); e.target.value = ""; }}} 
+            />
+            {tasks.map((t, i) => (
+              <div key={i} className="stat-box" style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                {t} <button onClick={() => {setTasks([]); setWins(wins + 1)}}>DONE</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'timer' && (
+          <div style={{ textAlign: 'center' }}>
+            <h2>Micro-Burst</h2>
+            <div style={{ fontSize: '5rem', margin: '20px 0' }}>{formatTime(timeLeft)}</div>
+            <button className="btn" onClick={() => setIsActive(!isActive)}>{isActive ? "PAUSE" : "START 5 MINS"}</button>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
   return (
     <div className="container">
       <style>{styles}</style>

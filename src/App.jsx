@@ -47,16 +47,25 @@ export default function ADHDApp() {
     .stat-box { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; border: 1px solid #444; margin-bottom: 10px; }
     input, textarea { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid #444; border-radius: 8px; padding: 14px; color: var(--text); margin-top: 10px; font-family: inherit; }
   `;
-
-  const toggleSound = (key) => {
-    const sounds = {
-      rain: "https://www.soundjay.com/nature/rain-01.mp3",
-      white: "https://www.soundjay.com/misc/white-noise-01.mp3",
-      cafe: "https://www.soundjay.com/misc/soundshell-1.mp3"
-    };
-    if (currentSound === key) { audioRef.current.pause(); setCurrentSound(null); } 
-    else { audioRef.current.src = sounds[key]; audioRef.current.loop = true; audioRef.current.play(); setCurrentSound(key); }
+const toggleSound = (key) => {
+  const soundFiles = {
+    rain: "/sounds/rain.mp3",
+    white: "/sounds/white.mp3"
   };
+
+  if (currentSound === key) {
+    audioRef.current.pause();
+    setCurrentSound(null);
+  } else {
+    // This 'catch' helps us see exactly why it might fail in the console
+    audioRef.current.src = soundFiles[key];
+    audioRef.current.loop = true;
+    audioRef.current.play().catch(error => {
+      console.error("Playback failed. Ensure the file exists in public/sounds/ :", error);
+    });
+    setCurrentSound(key);
+  }
+};
 
   const handleComplete = (taskName) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
